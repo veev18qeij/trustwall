@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (path === '/view') {
+  if (path === '/view' || path === '/view.html') {
     fs.readFile('./view.html', 'utf8', (err, data) => {
       if (err) { res.writeHead(500); res.end('Server error'); return; }
       res.writeHead(200, { 'Content-Type': 'text/html' });
