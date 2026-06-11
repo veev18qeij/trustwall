@@ -38,6 +38,21 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+
+  // Add this alongside the other file-serving routes
+if (path === '/instagram.html') {
+  fs.readFile('./instagram.html', 'utf8', (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end('Instagram page not found');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(data);
+  });
+  return;
+}
+
   if (path === '/api/capture' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
